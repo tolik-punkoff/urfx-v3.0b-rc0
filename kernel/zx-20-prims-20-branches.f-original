@@ -1,0 +1,407 @@
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ZX Spectrum UrF/X Forth System
+;; Copyright (C) 2024-2025 Ketmar Dark // Invisible Vector
+;; Understanding is not required. Only obedience.
+;; see LICENSE.txt for license terms
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; branches
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+primitive: BRANCH
+0 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  restore-tos
+  0 jp-# ;
+
+primitive: 0BRANCH  ( n )
+1 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"0BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 r16l->a
+  tos-r16 or-a-r16h
+  pop-tos-hl
+  0 cond:z jp-#-cc ;
+
+primitive: TBRANCH  ( n )
+1 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"TBRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 r16l->a
+  tos-r16 or-a-r16h
+  pop-tos-hl
+  0 cond:nz jp-#-cc ;
+
+primitive: -BRANCH  ( n )
+1 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"-BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 7 bit-r16h-n
+  pop-tos-hl
+  0 cond:nz jp-#-cc ;
+
+primitive: +0BRANCH  ( n )
+1 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"+0BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 7 bit-r16h-n
+  pop-tos-hl
+  0 cond:z jp-#-cc ;
+
+primitive: -0BRANCH  ( n )
+1 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"-0BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  ;; by DW0RKiN
+  tos-r16 r16h->a     ;; save sign
+  tos-r16 dec-r16     ;; zero to negative
+  tos-r16 or-a-r16h
+  pop-tos-hl
+  0 cond:m jp-#-cc ;
+
+primitive: +BRANCH  ( n )
+1 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"+BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  ;; by DW0RKiN
+  tos-r16 r16h->a    ;; save sign
+  tos-r16 dec-r16     ;; zero to negative
+  tos-r16 or-a-r16h
+  pop-tos-hl
+  0 cond:p jp-#-cc ;
+
+primitive: =BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"=BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:z jp-#-cc ;
+
+primitive: <>BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"<>BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:nz jp-#-cc ;
+
+primitive: <BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"<BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? not?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:m jp-#-cc ;
+
+primitive: >BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-">BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? ?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:m jp-#-cc ;
+
+primitive: >=BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-">=BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? not?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:p jp-#-cc ;
+
+primitive: <=BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"<=BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? ?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:p jp-#-cc ;
+
+
+primitive: U<BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"U<BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? not?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:c jp-#-cc ;
+
+primitive: U>BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"U>BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? ?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:c jp-#-cc ;
+
+primitive: U>=BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"U>=BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? not?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:nc jp-#-cc ;
+
+primitive: U<=BRANCH  ( a b )
+2 0 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+Succubus:setters:optimiser: opt-"U<=BRANCH"
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  non-tos-r16 pop-r16
+  TOS-in-DE? ?< ex-de-hl >?
+  xor-a-a
+  sbc-hl-de
+  pop-tos-hl
+  0 cond:nc jp-#-cc ;
+
+
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; non-destructive branches
+
+primitive: 0BRANCH-ND  ( n -- n )
+1 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 r16l->a
+  tos-r16 or-a-r16h
+  restore-tos
+  0 cond:z jp-#-cc ;
+
+primitive: TBRANCH-ND  ( n -- n )
+1 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 r16l->a
+  tos-r16 or-a-r16h
+  restore-tos
+  0 cond:nz jp-#-cc ;
+
+primitive: -BRANCH-ND  ( n -- n )
+1 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 7 bit-r16h-n
+  restore-tos
+  0 cond:nz jp-#-cc ;
+
+primitive: +0BRANCH-ND  ( n -- n )
+1 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  tos-r16 7 bit-r16h-n
+  restore-tos
+  0 cond:z jp-#-cc ;
+
+primitive: -0BRANCH-ND  ( n -- n )
+1 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  restore-tos
+  ;; by DW0RKiN
+  h->a    ;; save sign
+  dec-hl  ;; zero to negative
+  or-a-h
+  inc-hl  ;; restore TOS
+  0 cond:m jp-#-cc ;
+
+primitive: +BRANCH-ND  ( n -- n )
+1 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  restore-tos
+  ;; by DW0RKiN
+  h->a    ;; save sign
+  dec-hl  ;; zero to negative
+  or-a-h
+  inc-hl  ;; restore TOS
+  0 cond:p jp-#-cc ;
+
+primitive: =BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  nd-branch-pop
+  l->a
+  xor-e
+  a->e
+  h->a
+  xor-d
+  or-e
+  0 cond:z jp-#-cc ;
+
+primitive: <>BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  nd-branch-pop
+  l->a
+  xor-e
+  a->e
+  h->a
+  xor-d
+  or-e
+  0 cond:nz jp-#-cc ;
+
+primitive: <BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  nd-branch-pop
+  hl->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:m jp-#-cc ;
+
+primitive: >BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  restore-tos-pop-de
+  de->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:m jp-#-cc ;
+
+primitive: >=BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  nd-branch-pop
+  hl->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:p jp-#-cc ;
+
+primitive: <=BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  restore-tos-pop-de
+  de->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:p jp-#-cc ;
+
+primitive: U<BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  nd-branch-pop
+  hl->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:c jp-#-cc ;
+
+primitive: U>BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  restore-tos-pop-de
+  de->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:c jp-#-cc ;
+
+primitive: U>=BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  nd-branch-pop
+  hl->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:nc jp-#-cc ;
+
+primitive: U<=BRANCH-ND  ( a b -- a )
+2 1 Succubus:setters:in-out-args
+Succubus:setters:setup-branch
+:codegen-xasm
+  curr-node node-branch:ir-dest 0?error" unresolved branch"
+  restore-tos-pop-de
+  de->bc
+  xor-a-a
+  sbc-hl-de
+  bc->hl
+  0 cond:nc jp-#-cc ;

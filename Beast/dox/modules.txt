@@ -1,0 +1,157 @@
+Beast doesn't have "VOCABULARY" word, she uses modules instead.
+
+  module MY-MODULE
+  ...
+  end-module MY-MODULE
+
+you can extend the existing module with new words:
+
+  extend-module MY-MODULE
+  ...
+  end-module MY-MODULE
+
+to call a word from a module, you can use "my-module:some-word" syntax.
+"FIND" automatically resolves it. "module1:module2:word" is allowed too
+(i.e. there can be as much module references as you need to).
+
+you can use "using OTHER-MODULE" word inside module definition to
+temporarily "import" that module, and access its words without a prefix.
+
+or, a nicer form:
+  invite module-name
+  thank-you module-name
+
+if you need to import some module under a different name, use:
+
+  import some-module as new-name
+
+now you'll be able to refer to "some-module" words as "new-name:word".
+
+do not afraid of using modules to split your program to small components.
+actually, this is the recommended way of writing programs with Beast.
+
+
+note that some words may be "private". such words cannot be accessed with
+":", you should use "::" instead. i.e. "module1::hidden". but usually
+such words are hidden for a reason, and you'd better don't do that.
+
+you can use "<disable-hash>" after creating a new module to avoid putting
+module words into the names hash table. this may be useful with vocobjects,
+for example. this must be the very first word after creating a new module
+(i.e. no module words should be defined yet).
+
+there are also "public" and "published" words. you can switch current mode
+with "<private-words>", "<public-words>", "<published-words>". the
+difference between "public" and "published" is important in "sealing" (see
+below).
+
+there are special colon forms to define private and published words:
+
+  |: this-is-private-word ... ;
+  @: this-is-published-word ... ;
+
+just for completeness: there is also special colon form to define immediate
+words:
+
+  *: this-is-immediate-word ... ;
+
+internally, any word can have an attached module. words with attached
+method modules are called "vocobjects", and there is "vocobj" module to
+work with them.
+
+that's how QUANs are implemented, for example:
+
+  0 quan qq
+  69 qq:! -- call internal quan method
+
+
+there are still CONTEXT and CURRENT variables. think of them as top of the
+corresponding stacks. yes, there are two additional stacks: VSTACK for
+search context, and NSTACK to temporarily store old CURRENT. "FIND" will
+check CURRENT, then VSTACK starting from the top item until the last, or
+until it hits "0". i.e. you can use "0 vsp-push" to tell "FIND" to stop
+there. and i know that stack names could be better. historically, "V" is
+"vocabulary", and "N" is "curreNt". but most of the time you should use
+"push-ctx"/"pop-ctx", and "push-cur"/"pop-cur". i.e.:
+
+  push-ctx vocid: myvoc context! ... pop-ctx
+
+and by the way: anonymous vocabulary is called "wordlist", but wordlist
+address (the thing that is returned by "MK-WORDLIST", and stored in
+"CONTEXT"/"CURRENT") is called "vocid". i don't like "wid" (it can be
+easily read as "word id", whatever it could be). module name word returns
+vocid by default, but it's better to use "vocid: modname" to make your
+intents more clear.
+
+you can push numbers in range of [-65535..65535] to module stacks, and use
+them as various marks. they will be ignored on word searching.
+
+also note that modules on the stack will not be checked twice, if you will
+push them twice.
+
+
+there are some special callbacks you can use to extend the intepreter.
+each module may have such callbacks:
+
+find callback:  ( addr count skip-hidden? vocid -- cfa TRUE // FALSE )
+  this is called instead of the standard word search code, if defined.
+  if FALSE is returned, Beast will continue searching. `vocid` arg is
+  there for convenience (to allow reusing searcher code for different
+  modules).
+  words to set and get it:
+    system:vocid-find-cfa@  ( vocid -- cfa // 0 )
+    system:vocid-find-cfa!  ( cfa vocid )
+
+literal callback:  ( lit -- ... TRUE // lit FALSE )
+  this is called when the search failed, but conversion to numeric literal
+  succeeded. if FALSE is returned, the literal processing continues,
+  otherwise it is stopped (and the literal should be consumed).
+  WARNING! you *MUST* leave `lit` untouched if you haven't processed it.
+           changing `lit` is UB.
+  words to set and get it:
+    system:vocid-literal-cfa@  ( vocid -- cfa // 0 )
+    system:vocid-literal-cfa!  ( cfa vocid )
+
+notfound callback:  ( addr count -- processed? )
+  this is called when the search failed, *AND* conversion to literal failed
+  too. this is your last chance to process the word.
+  note that this is called after all searches and conversion attemts are
+  complete. i.e. you can use this callback to implement additional words,
+  but allow the user to override them by other means.
+  words to set and get it:
+    system:vocid-notfound-cfa@  ( vocid -- cfa // 0 )
+    system:vocid-notfound-cfa!  ( cfa vocid )
+
+execcomp callback:  ( cfa -- ... TRUE // cfa FALSE )
+  this is called when the word in found in the given module (either via standard
+  search, or by using find callback). execcomp can be used to override the
+  standard compilation/interpretation action.
+  words to set and get it:
+    system:vocid-execcomp-cfa@  ( vocid -- cfa // 0 )
+    system:vocid-execcomp-cfa!  ( cfa vocid )
+
+
+by using the callbacks, you can dynamically extend the interpreter without
+changing its code. for example, Z80 assembler is able to parse instructions
+like "ld a,($6001)" due to custom find callback it pushes on context stack
+(the normal form is " ld a, () $6001").
+
+also, the interpreter itself has some useful building blocks.
+
+INTERPRET
+  main word. interprets TIB, and does refill. calls "INTERPRET-TIB".
+
+INTERPRET-TIB
+  interpret tib, doesn't perform refill. calls "INTERPRET-WORD".
+  stores ">in" to "interpret-hooks:start-pos" before calling
+  "INTERPRET-WORD".
+
+INTERPRET-WORD  ( addr count )
+  interpret one word.
+
+so if you want to split a word into several parts, and interpret them as if
+they came from the input stream, you can use "INTERPRET-WORD" for this. but
+note that your callbacks will be called again in this case. i.e. if you are
+doing some processing in find callback, make sure that it will not call
+"INTERPRET-WORD" each time (because this will lead to infinite loop, and
+"stack overflow" error).

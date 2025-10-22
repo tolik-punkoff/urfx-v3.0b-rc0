@@ -1,0 +1,14 @@
+there is a "chained" word, which is useful to create callback chains.
+
+  chained my-chain
+
+  : w0 ... ; my-chain:!latest
+  :noname ... ; my-chain:!
+
+when calling "my-chain", all chained words will be called in order, and the
+result (so-called "chain result") will be returned.
+
+can use "<num> chain-res!" to set "chain result" from any action word. any
+non-zero value will prevent executing all further chained actions. this
+value will be returned as a result of chain execution. if no action word
+set a result, the "chain result" will be 0.

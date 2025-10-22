@@ -1,0 +1,43 @@
+<h1>UrF/X user manual</h1>
+
+  * [#introduction|Introduction and history]
+  * [#overview|High-level compiler overview]
+      write about "applications" (project organisation) here.
+      explain how to build projects.
+  * [#forthprimer|Brief introduction to Forth and RPN]
+  * [#loopsnconds|Loops and conditionals]
+      also, explain recursive words here, and why they need to be marked.
+  * [#betterforth|How to write good Forth code]
+      explain how to write good Forth code, and what "zx-inline" does.
+      write about debugging here too -- logs and stack balance checks.
+      explain what optimiser could do, and how to exploit it.
+  * [#assembler|Writing words with built-in assembler]
+      explain that assembler words cannot be inlined.
+  * [#customim2|Writing custom interrupt handlers and handler chaining]
+  * [#primitives|Writing new primitives]
+      explain what primitives are, stack model, and so on.
+      explain assembler word prologue/epilogue (yeah, here).
+      explain what "xasm" is, and how to use it.
+  * [#hostsystem|Using host UrForth/Beast system to extend the compiler]
+      loading sprites and rooms from text definitions, and such.
+  * [#libraries|Brief description of some standard libraries]
+      explain library system and library options.
+  * [#libwinarrow|Using "windows and arrow" libraries to create UIs]
+  * [#libspr16|Using SPR16 sprite library]
+  * [#libsfx|Using sound effects libraries]
+  * [#libdos|Using DOS interface library]
+
+  add chapters with sample applications and games.
+
+
+please, do not write in Forth as if it yet another c-like with an ugly
+syntax. because it is not.
+
+no, there are no local vars. you don't need them. no, i will not implement
+local vars. never. you don't need them. i used exactly zero local vars in
+UrForth/Beast, and in UrF/X. stack is your friend.
+
+do not try to be overly smart. your words should consume all the params,
+and return the result. it is better to put extra "DUP" before calling a
+word than trying to remember if that one particular word eats its args or
+not. do not optimise your code until you KNOW that you hit a hot spot.

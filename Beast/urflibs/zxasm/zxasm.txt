@@ -1,0 +1,131 @@
+this is Z80 assembler, which can be used as a loadable module in various
+projects. it is done this way so i could use it in my ZX Spectrum Forth
+systems.
+
+the assembler has 64K of virtual Z80 memory, and can write .TAP file with
+proper BASIC loader.
+
+the main module is "ZXA".
+
+some words:
+
+<asm>
+here you can write Z80ASM code. additional commands:
+
+addr org
+addr ent
+addr clr
+
+byte db,
+byte dw,
+
+lbl-addr: name
+  compile label reference (support forwards).
+
+ofs lbl-addr-ofs: name
+  compile label reference with offset (support forwards).
+
+[@@] ( -- value )  \ labname
+
+value @def: labname
+  define new label. cannot define local labels. doesn't reset locals root.
+
+value @def-global: labname
+  define new label, make it new locals root.
+
+
+you can define new labels here by using z80-labman rules:
+
+:label
+:.label
+:@label -- doesn't change locals root
+
+or
+label:
+.label:
+@label: -- doesn't change locals root
+
+...
+<end-asm>
+
+
+zxa:org@  ( -- org )
+zxa:org!  ( org -- )
+
+zxa:clr@  ( -- clr )
+zxa:clr!  ( clr -- )
+
+zxa:ent@  ( -- ent )
+zxa:ent!  ( ent -- )
+
+;; move current ORG without flushing Z80ASM
+zxa:(zx-allot)  ( bytes )
+
+zxa:zx-allot  ( bytes )
+
+
+zxa:normalize-blocks
+  mark small unused gaps (usually up to 64 or 128 bytes)
+  as used, to avoid writing a lot of small blocks if your code
+  has many small gaps.
+
+zxa:count-blocks  ( -- count )
+  count number of code blocks to be written to .TAP.
+
+zxa:next-block-from  ( zx-addr -- zx-addr )
+  find next used block starting from the given address.
+  return value greater than $FFFF (i.e. with high word set)
+  if there are no more blocks.
+
+zx:block-end-from  ( zx-addr -- zx-end-addr )
+  find given block end. return address *AFTER* the last block
+  byte (i.e. it may have high word set).
+
+
+API to saving .TAP files. this creates BASIC loader.
+there is no API to save only code blocks yet.
+
+zxa:writers:set-cargador-name  ( addr count )
+  set BASIC loader file name. default is "cargador".
+  maximum name length is 10 bytes.
+
+zxa:writers:set-cblock-name  ( addr count )
+  set CODE block file name.
+  maximum name length is 10 bytes.
+
+zxa:writers:tap-save-code-block  ( addr count zx-start fd )
+  save code block (with header) with the name from `cblock-name`.
+  `zx-start` is the start address which will be put into header.
+
+zxa:writers:tap-save-fd  ( fd )
+  save to the given file descriptor.
+  destroys `cblock-name`.
+
+zxa:writers:tap-create  ( addr count )
+  create file and save.
+  destroys `cblock-name`.
+
+
+module zxa:mem contains Z80 memory and some words to work with it. note
+that ZXA keeps "was set" flag for each memory byte, and creates proper set
+of code blocks for .TAP file.
+
+zxa:init-memory
+  wipe all memory contents, reset "used" flags for all bytes.
+
+zxa:ram^  ( zx-addr -- addr )
+  convert ZX address to host address (to be used with host c@ and such).
+
+zxa:used? ( zx-addr -- flag )
+  check if this ZX address byte was written at least once.
+
+zxa:used  ( zx-addr )
+  mark the byte as written (but don't change its contents).
+
+the following words doesn't flush Z80ASM:
+zxa:c@  ( zx-addr -- byte )
+zxa:w@  ( zx-addr -- byte )
+zxa:c!  ( byte zx-addr )
+zxa:w!  ( word zx-addr )
+zxa:db, ( byte )
+zxa:dw, ( word )

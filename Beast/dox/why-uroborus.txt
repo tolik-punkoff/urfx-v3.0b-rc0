@@ -1,0 +1,9 @@
+why this project (and its repository) is called Uroborus, not UrForth?
+======================================================================
+
+as with many other things in UrForth, this is just a historical artefact.
+UrForth system had several incarnations, and Uroborus target compiler was
+created with UrForth/C first. that C version was very different to Beast,
+and it still affects Uroborus code: i never rewrote Uroborus to take
+advantage of Beast features. it could be done, but i don't see any good
+reasons to do it right now.

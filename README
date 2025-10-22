@@ -1,0 +1,48 @@
+this is Forth cross-compiler for ZX Spectrum, with native Z80 code
+generation. it can create standalone .tap and +3DOS .dsk files.
+
+your application directory should have "zx-main.f" file. this is Speccy
+Forth source code. there also could be "00-urfx-user-options.f" file to
+override compiler options. some options are listed below:
+
+$8000 OPT-BASE-ADDRESS:!
+  base (starting) address of the compiled code. the lowest is $6000.
+
+160 OPT-RSTACK-BYTES:!
+  number of bytes in return stack
+
+
+standalone apps
+===============
+
+the last defined word will become MAIN automatically.
+
+the system will run your word after cold initialisation.
+
+
+turnkey apps
+============
+
+"turnkey" application is the application where unused words are not
+compiled into the final binary. such apps will include only the relevant
+kernel parts, and your code. i.e. you can create "rich" application and
+libraries, and the compiler will throw away unused parts. for example,
+included "stick-scan" library will take 0 bytes if you haven't used stick
+reading words.
+
+turnkey app is compiled with two compiler passes:
+
+  urforth urfx-main.f --app my-app -o my-app.tap --turnkey-pass1
+  urforth urfx-main.f --app my-app -o my-app.tap --turnkey-pass2
+
+the first pass will generate temporary file with compiler info, and the
+second pass will create output binary file. it is IMPORTANT for *ALL*
+options for both passes to be exactly the same! and the Forth code should
+not do anything fancy to cheat the compiler. please, don't try to fight
+with the compiler, it is your friend, not your foe.
+
+
+easy turnkey apps
+=================
+
+sh 0build-tk-app.sh appname -o myapp.tap

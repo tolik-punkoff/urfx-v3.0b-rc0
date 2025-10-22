@@ -1,0 +1,9 @@
+i don't have 64-bit system (and don't intend to switch), so i cannot
+provide any support for such systems. but i've been told that to run
+UrForth/Beast on x86_64, you need to install the following package (in
+Debian-based):
+
+  sudo apt-get install libc6-x32
+
+basically, you need x86 (32-bit) support libraries, because UrForth/Beast
+is 32-bit app.

@@ -1,0 +1,3 @@
+: RUN
+  ." HI!"
+  (DIHALT) ;

@@ -1,0 +1,278 @@
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Uroborus: UrForth 32-bit target compiler
+;; Copyright (C) 2023-2024 Ketmar Dark // Invisible Vector
+;; see LICENSE.txt for license terms
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; simple elf header creation, and writing binary elf file
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+module elf-builder
+<disable-hash>
+
+0 quan entry-point-addr  ;; not va
+0 quan code-size-addr    ;; not va
+0 quan hdr-size-addr     ;; not va
+0 quan hdr-foffset-addr  ;; not va
+0 quan import-table-va
+0 quan import-table-size
+
+<private-words>
+
+: >db,   ( value -- addr+1 )  tcom:c, ;
+: >dw,   ( value -- addr+2 )  tcom:w, ;
+: >dd,   ( value -- addr+4 )  tcom:, ;
+: >strz, ( addr count )       tcom:cstrz, ;
+
+ 0 constant DT_NULL
+ 1 constant DT_NEEDED
+ 4 constant DT_HASH
+ 5 constant DT_STRTAB
+ 6 constant DT_SYMTAB
+10 constant DT_STRSZ
+11 constant DT_SYMENT
+17 constant DT_REL
+18 constant DT_RELSZ
+19 constant DT_RELENT
+
+4 4 + 4 + 1 + 1 + 2 + constant ELF32_SYM_SIZE
+4 4 + constant ELF32_REL_SIZE
+
+<public-words>
+
+32 constant edyn-xofs
+
+: build-header
+  tcom:here tcom:base-va <> ?error" invalid TCOM:HERE"
+  \ tcom:real-here to pe-header-real-size
+
+  ;; signature
+  $7F >db, [char] E >db, [char] L >db, [char] F >db,
+
+  1 >db,     ;; bitness
+  1 >db,     ;; endianness
+  1 >db,     ;; header version
+  3 >db,     ;; abi
+
+  8 for 0 >db, endfor
+
+  2 >dw,     ;; e_type
+  3 >dw,     ;; e_machine
+
+  1 >dd,     ;; e_version
+  tcom:real-here to entry-point-addr
+  0 >dd,     ;; e_entry
+  $34 >dd,   ;; e_phoff
+  0 >dd,     ;; e_shoff
+  0 >dd,     ;; e_flags
+
+  $34 >dw,   ;; e_ehsize
+  32 >dw,    ;; e_phentsize
+  tcom:dynamic-binary ?<
+    4 >dw,   ;; e_phnum
+  ||
+    2 >dw,   ;; e_phnum
+  >?
+  40 >dw,    ;; e_shentsize
+  0 >dw,     ;; e_shnum
+  0 >dw,     ;; e_shstrndx
+
+  0 to tcom:dlopen-va
+  0 to tcom:dlclose-va
+  0 to tcom:dlsym-va
+  0 to tcom:exitproc-va
+
+  tcom:dynamic-binary not?< -- static binary
+    ;; first segment: executable code
+    1 >dd,            ;; type
+    $00000000 >dd,    ;; foffset
+    tcom:base-va >dd, ;; vaddr
+    tcom:base-va >dd, ;; shit
+    tcom:real-here to code-size-addr
+    tcom:here to tcom:codesize-va
+    $00000000 >dd,    ;; fsize
+    tcom:here to tcom:imagesize-va
+    tcom:image-vsize >dd,  ;; msize
+    $00000007 >dd,    ;; flags
+    $00001000 >dd,    ;; align
+
+    ;; second segment: word headers
+    1 >dd,            ;; type
+    tcom:real-here to hdr-foffset-addr
+    tcom:here to tcom:hdr-foffset-va
+    $00000000 >dd,    ;; foffset
+    tcom:hdr-base-va >dd, ;; vaddr
+    tcom:hdr-base-va >dd, ;; shit
+    tcom:real-here to hdr-size-addr
+    tcom:here to tcom:hdr-codesize-va
+    $00000000 >dd,    ;; fsize
+    tcom:here to tcom:hdr-imagesize-va
+    tcom:hdr-image-vsize >dd,  ;; msize
+    $00000006 >dd,    ;; flags
+    $00001000 >dd,    ;; align
+  ||
+    ;; first segment: interpreter
+    3 >dd,            ;; type
+    $00000094 edyn-xofs + >dd,    ;; foffset
+    tcom:base-va $094 + edyn-xofs + >dd,  ;; vaddr
+    tcom:base-va $094 + edyn-xofs + >dd,  ;; shit
+    $00000013 >dd,    ;; fsize
+    $00000013 >dd,    ;; msize
+    $00000007 >dd,    ;; flags  ;; was 4
+    $00000001 >dd,    ;; align
+
+    ;; second segment: dynamic imports
+    2 >dd,            ;; type
+    $000000A7 edyn-xofs + >dd,    ;; foffset
+    tcom:base-va $0A7 + edyn-xofs + >dd,  ;; vaddr
+    tcom:base-va $0A7 + edyn-xofs + >dd,  ;; shit
+    $00000050 >dd,    ;; fsize
+    $00000050 >dd,    ;; msize
+    $00000007 >dd,    ;; flags  ;; was 4
+    $00000001 >dd,    ;; align
+
+    ;; third segment: executable code
+    1 >dd,            ;; type
+    $00000000 >dd,    ;; foffset
+    tcom:base-va >dd, ;; vaddr
+    tcom:base-va >dd, ;; shit
+    tcom:real-here to code-size-addr
+    tcom:here to tcom:codesize-va
+    $00000000 >dd,    ;; fsize
+    tcom:here to tcom:imagesize-va
+    tcom:image-vsize >dd,  ;; msize
+    $00000007 >dd,    ;; flags
+    $00001000 >dd,    ;; align
+
+    ;; fourth segment: word headers
+    1 >dd,            ;; type
+    tcom:real-here to hdr-foffset-addr
+    tcom:here to tcom:hdr-foffset-va
+    $00000000 >dd,    ;; foffset
+    tcom:hdr-base-va >dd, ;; vaddr
+    tcom:hdr-base-va >dd, ;; shit
+    tcom:real-here to hdr-size-addr
+    tcom:here to tcom:hdr-codesize-va
+    $00000000 >dd,    ;; fsize
+    tcom:here to tcom:hdr-imagesize-va
+    tcom:hdr-image-vsize >dd,  ;; msize
+    $00000006 >dd,    ;; flags
+    $00001000 >dd,    ;; align
+
+    ;; first segment data: write interpreter string
+    " /lib/ld-linux.so.2" >strz,
+
+    ;; second segment data: write import table
+    ;; the only thing we need is .so management functions, so we'll create
+    ;; a very simple import table for "libdl.so.2", with 3 imports:
+    ;; "dlopen", "dlclose", "dlsym"
+    DT_NEEDED >dd, 1 >dd,                   ;; elfhead_str_libdl-elfhead_strtab
+    DT_STRTAB >dd, tcom:base-va $137 + edyn-xofs + >dd, ;; elfhead_strtab
+    DT_STRSZ >dd,  $0000001F >dd,           ;; elfhead_strsz
+    DT_SYMTAB >dd, tcom:base-va $0F7 + edyn-xofs + >dd, ;; elfhead_symtab
+    DT_SYMENT >dd, ELF32_SYM_SIZE >dd,
+    DT_REL >dd,    tcom:base-va $156 2 + + edyn-xofs + >dd, ;; elfhead_rel
+    DT_RELSZ >dd,  $00000018 >dd,           ;; elfhead_relsz >dd,
+    DT_RELENT >dd, ELF32_REL_SIZE >dd,
+    DT_HASH >dd,   tcom:base-va $16E 2 + + edyn-xofs + >dd, ;; elfhead_hash >dd,
+    DT_NULL >dd,   0 >dd,
+
+    ;; here starts executable segment
+    ;; we're putting rest of import table into it; this is prolly not right, but it works
+
+    ;; import symbol table
+    ;; NULL import, should always be here
+      0 >dd,  ;; name
+      0 >dd,  ;; value
+      0 >dd,  ;; size
+    $12 >db,  ;; (STB_GLOBAL<<4)|STT_FUNC
+      0 >db,  ;; other
+      0 >dw,  ;; shndx
+    ;; import "dlopen"
+     12 >dd,  ;; name offset
+      0 >dd,  ;; value
+      0 >dd,  ;; size
+    $12 >db,  ;; (STB_GLOBAL<<4)|STT_FUNC
+      0 >db,  ;; other
+      0 >dw,  ;; shndx
+    ;; import "dlclose"
+     19 >dd,  ;; name offset
+      0 >dd,  ;; value
+      0 >dd,  ;; size
+    $12 >db,  ;; (STB_GLOBAL<<4)|STT_FUNC
+      0 >db,  ;; other
+      0 >dw,  ;; shndx
+    ;; import "dlsym"
+     27 >dd,  ;; name offset
+      0 >dd,  ;; value
+      0 >dd,  ;; size
+    $12 >db,  ;; (STB_GLOBAL<<4)|STT_FUNC
+      0 >db,  ;; other
+      0 >dw,  ;; shndx
+
+    ;; string table
+    0 >db,
+    " libdl.so.2" >strz,  ;; see: https://spectrumcomputing.co.uk/forums/viewtopic.php?p=169956#p169956
+    " dlopen" >strz,
+    " dlclose" >strz,
+    " dlsym" >strz,
+
+    ;; importer will use this to fix relocations
+    ;; dlopen
+    tcom:base-va $18A + 2 + edyn-xofs + >dd,  ;; offset to elfimp_dlopen
+    $0101     >dd,  ;; high bit is symbol index, low bit is R_386_32
+    ;; dlclose
+    tcom:base-va $18E + 2 + edyn-xofs + >dd,  ;; offset to elfimp_dlclose
+    $0201     >dd,  ;; high bit is symbol index, low bit is R_386_32
+    ;; dlsym
+    tcom:base-va $192 + 2 + edyn-xofs + >dd,  ;; offset to elfimp_dlsym
+    $0301     >dd,  ;; high bit is symbol index, low bit is R_386_32
+
+    ;; fake import hash table with one bucket
+    1 >dd,  ;; bucket size
+    4 >dd,  ;; chain size (including NULL import)
+    0 >dd,  ;; fake bucket, just one hash value
+    ;; hashtable bucket
+    1 >dd,
+    2 >dd,
+    3 >dd,
+    4 >dd,
+
+    ;; loadef will add symbol offets to the following three dwords
+    tcom:here dup to import-table-va to tcom:imptable-va
+    0 >dd,  ;; dlopen
+    0 >dd,  ;; dlclose
+    0 >dd,  ;; dlsym
+    tcom:here import-table-va - dup to import-table-size to tcom:imptable-size
+
+    import-table-va dup to tcom:dlopen-va
+    4+ dup to tcom:dlclose-va
+    4+ to tcom:dlsym-va
+  >? ;
+
+
+: align-page  ( addr -- addr )  4095 + 4095 ~and ;
+
+: ep!  ( va )  entry-point-addr ! ;
+
+: finish-binary
+  tcom:binary-size code-size-addr !
+  tcom:hdr-binary-size hdr-size-addr !
+  tcom:binary-size hdr-foffset-addr ! ;
+
+;; default image base for ELF executables
+: init-image-base
+  $0040_0000 tcom:base-va:!
+  tcom:base-va tcom:image-vsize align-page + tcom:hdr-base-va:!
+  ."  image base: $" tcom:base-va .hex8 cr
+  ." header base: $" tcom:hdr-base-va .hex8 cr
+;
+
+: init-header  init-image-base build-header ;
+
+: setup
+  ['] init-header to tcom:init-header
+  ['] ep! to tcom:ep!
+  ['] finish-binary to tcom:finish-binary ;
+
+end-module elf-builder

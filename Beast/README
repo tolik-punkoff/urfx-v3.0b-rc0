@@ -1,0 +1,39 @@
+UrForth/Beast: Devastator + Succubus: STC self-hosting x86 Forth system.
+
+this is repository with Uroborus target compiler, and UrForth/Beast
+system source code.
+
+this system is using Succubus optimising native code compiler. the speed is
+comparable with most state-of-the-art optimising Forth compilers (sometimes
+Succubus generates better code, sometimes slightly worse). to give you some
+base to compare with: generated code is ~2.5 times slower than GCC -O2,
+which is more than enough for any practical purposes. especially
+considering compilation speed (lightning fast ;-).
+
+
+***********************************************************************
+WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+***********************************************************************
+
+UrForth/Beast is TOTALLY NON-STANDARD! don't bother trying to use it. UrF/B
+was created to solve some of my real-world needs, and it reflects my vision
+of what Forth system should be. i never cared about any "Forth standards",
+and i strongly believe that Forth doesn't need any "standardisation", such
+attempts only make Forth worser. remember, Forth is about creating a system
+*YOU* feel natural to use, not about sticking to some "standard". Forth
+extensibility is there for a reason.
+
+moreover, i believe that existing Forth "standards" is the sole reason for
+people to percieve Forth as a "toy language". it is totally impossible to
+write any serious software in Forth using those so-called "standards".
+
+someday i'll write an essay about UrF/B design, but for now you are on your
+own. read the source code, and try to make sense of it.
+
+
+please, use Fossil repository instead of git mirror! Fossil repository
+contains a wiki. the wiki doesn't have much info in it, but...
+
+
+have fun, and happy hacking
+Ketmar Dark // Invisible Vector

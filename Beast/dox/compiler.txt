@@ -1,0 +1,44 @@
+never assume that you know how return address is stored on the return
+stack. use "RR>" to get the proper return address, and ">RR" to put it
+back. it is not the same as "R>" and ">R"!
+
+
+also note that Succubus performa tail call optimisation, so return stack
+may not contain what you think it does. use "^;" instead of ";" if you need
+to opt-out from TCO optimisation. if you need to perform an explicit tail
+call in your code, use "tcall word". most of the time Succubus will do this
+automatically, though.
+
+
+if you need to compile a word with some threaded code argument, use this:
+"['] word <\, ( compile arg) , \>". this is not the best idea, but
+somethimes you may need it (to implement "DOER-MAKE" from Brodie book, for
+example). in this case, use "RR>" to get the proper arguments address, and
+put new return address back with ">RR".
+
+
+note that "system" module contains all basic building blocks for various
+high-level words. for example, "mk-variable ( value addr count )" will
+create "variable" word. actually, "variable" is defined like this:
+
+  : VARIABLE  parse-name system:mk-variable ;
+
+when you need to use "does>", you have to use "<builds". "create" will not
+work. you can also use "mk-builds", and "system:!doer" to manually build
+such words. note that "!DOER" is "( builded-word-cfa doer-cfa )" (hence the
+name "!DOER", not "DOER!").
+
+  parse-name system:mk-builds
+  ( put some data )
+  system:latest-cfa ['] my-doer system:!doer
+
+you can use "my-doer" as "class check", like this:
+
+  ['] my-doer system:doer@ =
+
+note that both "DOER@" and "!DOER" will bomb out on "non-builded" words.
+you can check if it is safe to call them with "system:does?".
+
+explore Beast sources to learn more about internal compiler words. they are
+there for a reason, and you will prolly find a word suitable for your
+needs. the source also is a good way to learn how to use such words.
